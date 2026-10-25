@@ -195,76 +195,86 @@ function startaMikrofon() {
   }
 
   if (lyssnar) {
-    document.getElementById("status").textContent =
-      "Mikrofonen lyssnar redan.";
     return;
   }
 
   recognition = new SpeechRecognition();
   recognition.lang = "sv-SE";
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = false;
 
   const aktuell = recognition;
-  let fickResultat = false;
+  const startHal = hal;
+  let sistaResultat = -1;
+  let stoppa = false;
 
   aktuell.onstart = function() {
     lyssnar = true;
     document.getElementById("status").textContent =
-      "Lyssnar... Säg antal slag.";
+      "Lyssnar... Säg slag för " + spelare[tur];
   };
 
   aktuell.onresult = function(event) {
-    fickResultat = true;
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (!event.results[i].isFinal || i <= sistaResultat) {
+        continue;
+      }
 
-    const text = event.results[0][0].transcript
-      .toLowerCase()
-      .trim()
-      .replace(/[.,!?]/g, "");
+      sistaResultat = i;
 
-    const ord = {
-      "ett": 1, "en": 1, "två": 2,
-      "tre": 3, "fyra": 4, "fem": 5,
-      "sex": 6, "sju": 7, "åtta": 8,
-      "nio": 9, "tio": 10,
-      "elva": 11, "tolv": 12,
-      "tretton": 13, "fjorton": 14,
-      "femton": 15
-    };
+      const text = event.results[i][0].transcript
+        .toLowerCase()
+        .trim()
+        .replace(/[.,!?]/g, "");
 
-    let slag = Number(text);
+      const ord = {
+        "ett": 1, "en": 1, "två": 2,
+        "tre": 3, "fyra": 4, "fem": 5,
+        "sex": 6, "sju": 7, "åtta": 8,
+        "nio": 9, "tio": 10,
+        "elva": 11, "tolv": 12,
+        "tretton": 13, "fjorton": 14,
+        "femton": 15
+      };
 
-    if (!Number.isInteger(slag) || slag < 1) {
-      slag = ord[text];
-    }
+      let slag = Number(text);
 
-    if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
+      if (!Number.isInteger(slag) || slag < 1) {
+        slag = ord[text];
+      }
+
+      if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
+        document.getElementById("status").textContent =
+          "Jag hörde: " + text + ". Försök igen.";
+        continue;
+      }
+
+      registrera(slag);
+
+      if (hal !== startHal) {
+        stoppa = true;
+        aktuell.stop();
+        break;
+      }
+
       document.getElementById("status").textContent =
-        "Jag hörde: " + text + ". Försök igen.";
-      return;
+        "Registrerat! Säg slag för " + spelare[tur];
     }
-
-    registrera(slag);
   };
 
   aktuell.onerror = function(event) {
     if (event.error !== "aborted") {
       document.getElementById("status").textContent =
         "Mikrofonfel: " + event.error;
-    } else {
-      document.getElementById("status").textContent =
-        "Mikrofonen avbröts. Försök igen.";
     }
   };
 
   aktuell.onend = function() {
     lyssnar = false;
 
-    if (!fickResultat &&
-        document.getElementById("status").textContent
-          .startsWith("Lyssnar")) {
+    if (!stoppa && hal === startHal) {
       document.getElementById("status").textContent =
-        "Inget slag uppfattades. Försök igen.";
+        "Mikrofonen stannade. Tryck för att fortsätta.";
     }
   };
 
