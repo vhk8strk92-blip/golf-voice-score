@@ -4,32 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Golf Voice Score</title>
-
 <style>
 body {
   font-family: Arial, sans-serif;
   text-align: center;
-  padding: 20px;
   background: #f5f8f5;
+  padding: 15px;
 }
 h1 { color: #176b39; }
 button, input {
   font-size: 20px;
   padding: 12px;
-  margin: 8px;
+  margin: 6px;
 }
 button {
   background: #176b39;
   color: white;
   border: none;
   border-radius: 8px;
+  cursor: pointer;
 }
-#slag {
-  font-size: 48px;
+#namn { width: 85%; max-width: 400px; }
+#spelare { color: #176b39; }
+#status { font-size: 18px; }
+table {
+  border-collapse: collapse;
+  margin: 15px auto;
+  width: 100%;
+  max-width: 450px;
+  font-size: 22px;
+}
+th, td {
+  border: 1px solid #aaa;
+  padding: 12px;
+}
+th { background: #d8eadc; }
+.aktiv { background: #fff2b8; }
+#senaste {
+  font-size: 22px;
   font-weight: bold;
   color: #176b39;
 }
-#status { font-size: 20px; }
 </style>
 </head>
 
@@ -39,20 +54,30 @@ button {
 
 <div id="start">
   <h2>Vilka spelar idag?</h2>
-  <p>Skriv spelarnas namn, åtskilda med kommatecken.</p>
-  <input id="namn" placeholder="Anders, Colin">
+  <p>Skriv spelarnas namn med kommatecken emellan.</p>
+  <input id="namn" placeholder="Anders, Colin, Peter">
   <br>
   <button onclick="starta()">Starta rundan</button>
 </div>
 
 <div id="spel" style="display:none">
-  <h2 id="hal">Hål 1 av 18</h2>
+  <h2 id="hal"></h2>
   <h2 id="spelare"></h2>
 
   <button onclick="startaMikrofon()">🎤 Starta mikrofon</button>
 
-  <p id="status">Tryck på mikrofonen och säg antal slag.</p>
-  <div id="slag">–</div>
+  <p id="status">Säg antal slag.</p>
+  <p id="senaste"></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Spelare</th>
+        <th>Slag</th>
+      </tr>
+    </thead>
+    <tbody id="tabell"></tbody>
+  </table>
 
   <button onclick="ratta()">Rätta senaste slag</button>
   <p id="framsteg"></p>
@@ -65,10 +90,11 @@ button {
 
 <script>
 let spelare = [];
-let resultat = {};
-let hal = 1;
+let poang = [];
+let hal = 0;
 let tur = 0;
 let historik = [];
+let recognition = null;
 
 function starta() {
   spelare = document.getElementById("namn").value
@@ -76,12 +102,15 @@ function starta() {
     .map(n => n.trim())
     .filter(n => n);
 
-  if (spelare.length === 0) {
-    alert("Ange minst en spelare.");
+  if (spelare.length === 0 || spelare.length > 8) {
+    alert("Ange mellan 1 och 8 spelare.");
     return;
   }
 
-  spelare.forEach(n => resultat[n] = []);
+  poang = spelare.map(() => Array(18).fill(null));
+  hal = 0;
+  tur = 0;
+  historik = [];
 
   document.getElementById("start").style.display = "none";
   document.getElementById("spel").style.display = "block";
@@ -91,15 +120,27 @@ function starta() {
 
 function visa() {
   document.getElementById("hal").textContent =
-    "Hål " + hal + " av 18";
+    "Hål " + (hal + 1) + " av 18";
 
   document.getElementById("spelare").textContent =
-    spelare[tur];
+    "Nuvarande spelare: " + spelare[tur];
 
-  document.getElementById("slag").textContent = "–";
+  let html = "";
 
-  document.getElementById("status").textContent =
-    "Säg antal slag.";
+  spelare.forEach((namn, i) => {
+    const slag = poang[i][hal];
+    const klass = i === tur ? ' class="aktiv"' : "";
+
+    html += "<tr" + klass + "><td>" +
+      namn.replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;") +
+      "</td><td>" +
+      (slag === null ? "–" : slag) +
+      "</td></tr>";
+  });
+
+  document.getElementById("tabell").innerHTML = html;
 
   document.getElementById("framsteg").textContent =
     "Registrerade slag: " + historik.length +
@@ -116,14 +157,25 @@ function startaMikrofon() {
     return;
   }
 
-  const recognition = new SpeechRecognition();
+  if (recognition) {
+    try { recognition.abort(); } catch (e) {}
+  }
+
+  recognition = new SpeechRecognition();
   recognition.lang = "sv-SE";
   recognition.continuous = false;
   recognition.interimResults = false;
 
-  recognition.onresult = function(event) {
+  const aktuell = recognition;
+
+  document.getElementById("status").textContent =
+    "Lyssnar... Säg antal slag.";
+
+  aktuell.onresult = function(event) {
     const text = event.results[0][0].transcript
-      .toLowerCase().trim();
+      .toLowerCase()
+      .trim()
+      .replace(/[.,!?]/g, "");
 
     const ord = {
       "ett": 1, "en": 1, "två": 2,
@@ -150,26 +202,33 @@ function startaMikrofon() {
     registrera(slag);
   };
 
-  recognition.onerror = function(event) {
-    document.getElementById("status").textContent =
-      "Mikrofonfel: " + event.error;
+  aktuell.onerror = function(event) {
+    if (event.error !== "aborted") {
+      document.getElementById("status").textContent =
+        "Mikrofonfel: " + event.error;
+    }
   };
 
-  recognition.start();
+  try {
+    aktuell.start();
+  } catch (e) {
+    document.getElementById("status").textContent =
+      "Kunde inte starta mikrofonen.";
+  }
 }
 
 function registrera(slag) {
   const namn = spelare[tur];
 
-  resultat[namn][hal - 1] = slag;
+  poang[tur][hal] = slag;
 
-  historik.push({
-    namn: namn,
-    hal: hal,
-    slag: slag
-  });
+  historik.push({ hal, tur, slag });
 
-  document.getElementById("slag").textContent = slag;
+  document.getElementById("senaste").textContent =
+    namn + ": " + slag + " slag";
+
+  document.getElementById("status").textContent =
+    "Registrerat! Tryck på mikrofonen för nästa spelare.";
 
   tur++;
 
@@ -178,7 +237,7 @@ function registrera(slag) {
     hal++;
   }
 
-  if (hal > 18) {
+  if (hal >= 18) {
     avsluta();
   } else {
     visa();
@@ -191,30 +250,607 @@ function ratta() {
   const senaste = historik.pop();
 
   hal = senaste.hal;
-  tur = spelare.indexOf(senaste.namn);
+  tur = senaste.tur;
+  poang[tur][hal] = null;
 
-  resultat[senaste.namn][hal - 1] = undefined;
-
-  visa();
+  document.getElementById("senaste").textContent =
+    "Rättar " + spelare[tur] + " på hål " + (hal + 1);
 
   document.getElementById("status").textContent =
-    "Ange nytt antal slag för " + senaste.namn;
+    "Tryck på mikrofonen och ange rätt antal slag.";
+
+  visa();
 }
 
 function avsluta() {
   document.getElementById("spel").style.display = "none";
   document.getElementById("slut").style.display = "block";
 
-  let html = "";
+  let html = "<table><tr><th>Spelare</th><th>Totalt</th></tr>";
 
-  spelare.forEach(namn => {
-    const total = resultat[namn].reduce(
+  spelare.forEach((namn, i) => {
+    const total = poang[i].reduce(
       (summa, slag) => summa + (slag || 0), 0
     );
 
-    html += "<h3>" + namn + ": " + total + " slag</h3>";
+    html += "<tr><td>" + namn.replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+      "</td><td>" + total + "</td></tr>";
   });
 
+  html += "</table>";
+  document.getElementById("resultat").innerHTML = html;
+}
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf Voice Score</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f5f8f5;
+  padding: 15px;
+}
+h1 { color: #176b39; }
+button, input {
+  font-size: 20px;
+  padding: 12px;
+  margin: 6px;
+}
+button {
+  background: #176b39;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#namn { width: 85%; max-width: 400px; }
+#spelare { color: #176b39; }
+#status { font-size: 18px; }
+table {
+  border-collapse: collapse;
+  margin: 15px auto;
+  width: 100%;
+  max-width: 450px;
+  font-size: 22px;
+}
+th, td {
+  border: 1px solid #aaa;
+  padding: 12px;
+}
+th { background: #d8eadc; }
+.aktiv { background: #fff2b8; }
+#senaste {
+  font-size: 22px;
+  font-weight: bold;
+  color: #176b39;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⛳ Golf Voice Score</h1>
+
+<div id="start">
+  <h2>Vilka spelar idag?</h2>
+  <p>Skriv spelarnas namn med kommatecken emellan.</p>
+  <input id="namn" placeholder="Anders, Colin, Peter">
+  <br>
+  <button onclick="starta()">Starta rundan</button>
+</div>
+
+<div id="spel" style="display:none">
+  <h2 id="hal"></h2>
+  <h2 id="spelare"></h2>
+
+  <button onclick="startaMikrofon()">🎤 Starta mikrofon</button>
+
+  <p id="status">Säg antal slag.</p>
+  <p id="senaste"></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Spelare</th>
+        <th>Slag</th>
+      </tr>
+    </thead>
+    <tbody id="tabell"></tbody>
+  </table>
+
+  <button onclick="ratta()">Rätta senaste slag</button>
+  <p id="framsteg"></p>
+</div>
+
+<div id="slut" style="display:none">
+  <h2>Rundan är klar!</h2>
+  <div id="resultat"></div>
+</div>
+
+<script>
+let spelare = [];
+let poang = [];
+let hal = 0;
+let tur = 0;
+let historik = [];
+let recognition = null;
+
+function starta() {
+  spelare = document.getElementById("namn").value
+    .split(",")
+    .map(n => n.trim())
+    .filter(n => n);
+
+  if (spelare.length === 0 || spelare.length > 8) {
+    alert("Ange mellan 1 och 8 spelare.");
+    return;
+  }
+
+  poang = spelare.map(() => Array(18).fill(null));
+  hal = 0;
+  tur = 0;
+  historik = [];
+
+  document.getElementById("start").style.display = "none";
+  document.getElementById("spel").style.display = "block";
+
+  visa();
+}
+
+function visa() {
+  document.getElementById("hal").textContent =
+    "Hål " + (hal + 1) + " av 18";
+
+  document.getElementById("spelare").textContent =
+    "Nuvarande spelare: " + spelare[tur];
+
+  let html = "";
+
+  spelare.forEach((namn, i) => {
+    const slag = poang[i][hal];
+    const klass = i === tur ? ' class="aktiv"' : "";
+
+    html += "<tr" + klass + "><td>" +
+      namn.replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;") +
+      "</td><td>" +
+      (slag === null ? "–" : slag) +
+      "</td></tr>";
+  });
+
+  document.getElementById("tabell").innerHTML = html;
+
+  document.getElementById("framsteg").textContent =
+    "Registrerade slag: " + historik.length +
+    " av " + (spelare.length * 18);
+}
+
+function startaMikrofon() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    document.getElementById("status").textContent =
+      "Röstigenkänning stöds inte i denna webbläsare.";
+    return;
+  }
+
+  if (recognition) {
+    try { recognition.abort(); } catch (e) {}
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "sv-SE";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  const aktuell = recognition;
+
+  document.getElementById("status").textContent =
+    "Lyssnar... Säg antal slag.";
+
+  aktuell.onresult = function(event) {
+    const text = event.results[0][0].transcript
+      .toLowerCase()
+      .trim()
+      .replace(/[.,!?]/g, "");
+
+    const ord = {
+      "ett": 1, "en": 1, "två": 2,
+      "tre": 3, "fyra": 4, "fem": 5,
+      "sex": 6, "sju": 7, "åtta": 8,
+      "nio": 9, "tio": 10,
+      "elva": 11, "tolv": 12,
+      "tretton": 13, "fjorton": 14,
+      "femton": 15
+    };
+
+    let slag = Number(text);
+
+    if (!Number.isInteger(slag) || slag < 1) {
+      slag = ord[text];
+    }
+
+    if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
+      document.getElementById("status").textContent =
+        "Jag hörde: " + text + ". Försök igen.";
+      return;
+    }
+
+    registrera(slag);
+  };
+
+  aktuell.onerror = function(event) {
+    if (event.error !== "aborted") {
+      document.getElementById("status").textContent =
+        "Mikrofonfel: " + event.error;
+    }
+  };
+
+  try {
+    aktuell.start();
+  } catch (e) {
+    document.getElementById("status").textContent =
+      "Kunde inte starta mikrofonen.";
+  }
+}
+
+function registrera(slag) {
+  const namn = spelare[tur];
+
+  poang[tur][hal] = slag;
+
+  historik.push({ hal, tur, slag });
+
+  document.getElementById("senaste").textContent =
+    namn + ": " + slag + " slag";
+
+  document.getElementById("status").textContent =
+    "Registrerat! Tryck på mikrofonen för nästa spelare.";
+
+  tur++;
+
+  if (tur >= spelare.length) {
+    tur = 0;
+    hal++;
+  }
+
+  if (hal >= 18) {
+    avsluta();
+  } else {
+    visa();
+  }
+}
+
+function ratta() {
+  if (historik.length === 0) return;
+
+  const senaste = historik.pop();
+
+  hal = senaste.hal;
+  tur = senaste.tur;
+  poang[tur][hal] = null;
+
+  document.getElementById("senaste").textContent =
+    "Rättar " + spelare[tur] + " på hål " + (hal + 1);
+
+  document.getElementById("status").textContent =
+    "Tryck på mikrofonen och ange rätt antal slag.";
+
+  visa();
+}
+
+function avsluta() {
+  document.getElementById("spel").style.display = "none";
+  document.getElementById("slut").style.display = "block";
+
+  let html = "<table><tr><th>Spelare</th><th>Totalt</th></tr>";
+
+  spelare.forEach((namn, i) => {
+    const total = poang[i].reduce(
+      (summa, slag) => summa + (slag || 0), 0
+    );
+
+    html += "<tr><td>" + namn.replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+      "</td><td>" + total + "</td></tr>";
+  });
+
+  html += "</table>";
+  document.getElementById("resultat").innerHTML = html;
+}
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf Voice Score</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f5f8f5;
+  padding: 15px;
+}
+h1 { color: #176b39; }
+button, input {
+  font-size: 20px;
+  padding: 12px;
+  margin: 6px;
+}
+button {
+  background: #176b39;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#namn { width: 85%; max-width: 400px; }
+#spelare { color: #176b39; }
+#status { font-size: 18px; }
+table {
+  border-collapse: collapse;
+  margin: 15px auto;
+  width: 100%;
+  max-width: 450px;
+  font-size: 22px;
+}
+th, td {
+  border: 1px solid #aaa;
+  padding: 12px;
+}
+th { background: #d8eadc; }
+.aktiv { background: #fff2b8; }
+#senaste {
+  font-size: 22px;
+  font-weight: bold;
+  color: #176b39;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⛳ Golf Voice Score</h1>
+
+<div id="start">
+  <h2>Vilka spelar idag?</h2>
+  <p>Skriv spelarnas namn med kommatecken emellan.</p>
+  <input id="namn" placeholder="Anders, Colin, Peter">
+  <br>
+  <button onclick="starta()">Starta rundan</button>
+</div>
+
+<div id="spel" style="display:none">
+  <h2 id="hal"></h2>
+  <h2 id="spelare"></h2>
+
+  <button onclick="startaMikrofon()">🎤 Starta mikrofon</button>
+
+  <p id="status">Säg antal slag.</p>
+  <p id="senaste"></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Spelare</th>
+        <th>Slag</th>
+      </tr>
+    </thead>
+    <tbody id="tabell"></tbody>
+  </table>
+
+  <button onclick="ratta()">Rätta senaste slag</button>
+  <p id="framsteg"></p>
+</div>
+
+<div id="slut" style="display:none">
+  <h2>Rundan är klar!</h2>
+  <div id="resultat"></div>
+</div>
+
+<script>
+let spelare = [];
+let poang = [];
+let hal = 0;
+let tur = 0;
+let historik = [];
+let recognition = null;
+
+function starta() {
+  spelare = document.getElementById("namn").value
+    .split(",")
+    .map(n => n.trim())
+    .filter(n => n);
+
+  if (spelare.length === 0 || spelare.length > 8) {
+    alert("Ange mellan 1 och 8 spelare.");
+    return;
+  }
+
+  poang = spelare.map(() => Array(18).fill(null));
+  hal = 0;
+  tur = 0;
+  historik = [];
+
+  document.getElementById("start").style.display = "none";
+  document.getElementById("spel").style.display = "block";
+
+  visa();
+}
+
+function visa() {
+  document.getElementById("hal").textContent =
+    "Hål " + (hal + 1) + " av 18";
+
+  document.getElementById("spelare").textContent =
+    "Nuvarande spelare: " + spelare[tur];
+
+  let html = "";
+
+  spelare.forEach((namn, i) => {
+    const slag = poang[i][hal];
+    const klass = i === tur ? ' class="aktiv"' : "";
+
+    html += "<tr" + klass + "><td>" +
+      namn.replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;") +
+      "</td><td>" +
+      (slag === null ? "–" : slag) +
+      "</td></tr>";
+  });
+
+  document.getElementById("tabell").innerHTML = html;
+
+  document.getElementById("framsteg").textContent =
+    "Registrerade slag: " + historik.length +
+    " av " + (spelare.length * 18);
+}
+
+function startaMikrofon() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    document.getElementById("status").textContent =
+      "Röstigenkänning stöds inte i denna webbläsare.";
+    return;
+  }
+
+  if (recognition) {
+    try { recognition.abort(); } catch (e) {}
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "sv-SE";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  const aktuell = recognition;
+
+  document.getElementById("status").textContent =
+    "Lyssnar... Säg antal slag.";
+
+  aktuell.onresult = function(event) {
+    const text = event.results[0][0].transcript
+      .toLowerCase()
+      .trim()
+      .replace(/[.,!?]/g, "");
+
+    const ord = {
+      "ett": 1, "en": 1, "två": 2,
+      "tre": 3, "fyra": 4, "fem": 5,
+      "sex": 6, "sju": 7, "åtta": 8,
+      "nio": 9, "tio": 10,
+      "elva": 11, "tolv": 12,
+      "tretton": 13, "fjorton": 14,
+      "femton": 15
+    };
+
+    let slag = Number(text);
+
+    if (!Number.isInteger(slag) || slag < 1) {
+      slag = ord[text];
+    }
+
+    if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
+      document.getElementById("status").textContent =
+        "Jag hörde: " + text + ". Försök igen.";
+      return;
+    }
+
+    registrera(slag);
+  };
+
+  aktuell.onerror = function(event) {
+    if (event.error !== "aborted") {
+      document.getElementById("status").textContent =
+        "Mikrofonfel: " + event.error;
+    }
+  };
+
+  try {
+    aktuell.start();
+  } catch (e) {
+    document.getElementById("status").textContent =
+      "Kunde inte starta mikrofonen.";
+  }
+}
+
+function registrera(slag) {
+  const namn = spelare[tur];
+
+  poang[tur][hal] = slag;
+
+  historik.push({ hal, tur, slag });
+
+  document.getElementById("senaste").textContent =
+    namn + ": " + slag + " slag";
+
+  document.getElementById("status").textContent =
+    "Registrerat! Tryck på mikrofonen för nästa spelare.";
+
+  tur++;
+
+  if (tur >= spelare.length) {
+    tur = 0;
+    hal++;
+  }
+
+  if (hal >= 18) {
+    avsluta();
+  } else {
+    visa();
+  }
+}
+
+function ratta() {
+  if (historik.length === 0) return;
+
+  const senaste = historik.pop();
+
+  hal = senaste.hal;
+  tur = senaste.tur;
+  poang[tur][hal] = null;
+
+  document.getElementById("senaste").textContent =
+    "Rättar " + spelare[tur] + " på hål " + (hal + 1);
+
+  document.getElementById("status").textContent =
+    "Tryck på mikrofonen och ange rätt antal slag.";
+
+  visa();
+}
+
+function avsluta() {
+  document.getElementById("spel").style.display = "none";
+  document.getElementById("slut").style.display = "block";
+
+  let html = "<table><tr><th>Spelare</th><th>Totalt</th></tr>";
+
+  spelare.forEach((namn, i) => {
+    const total = poang[i].reduce(
+      (summa, slag) => summa + (slag || 0), 0
+    );
+
+    html += "<tr><td>" + namn.replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;") +
+      "</td><td>" + total + "</td></tr>";
+  });
+
+  html += "</table>";
   document.getElementById("resultat").innerHTML = html;
 }
 </script>
