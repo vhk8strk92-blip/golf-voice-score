@@ -1,48 +1,223 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Golf Voice Score</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf Voice Score</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+  background: #f5f8f5;
+}
+h1 { color: #176b39; }
+button, input {
+  font-size: 20px;
+  padding: 12px;
+  margin: 8px;
+}
+button {
+  background: #176b39;
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+#slag {
+  font-size: 48px;
+  font-weight: bold;
+  color: #176b39;
+}
+#status { font-size: 20px; }
+</style>
 </head>
-<body style="font-family:Arial; text-align:center; padding:30px;">
 
-  <h1>⛳ Golf Voice Score</h1>
-  <h2>Test av röststyrning</h2>
+<body>
 
-  <button onclick="testaRost()" style="font-size:24px; padding:15px;">
-    🎤 Starta mikrofon
-  </button>
+<h1>⛳ Golf Voice Score</h1>
 
-  <p id="resultat" style="font-size:24px;">Väntar på röst...</p>
+<div id="start">
+  <h2>Vilka spelar idag?</h2>
+  <p>Skriv spelarnas namn, åtskilda med kommatecken.</p>
+  <input id="namn" placeholder="Anders, Colin">
+  <br>
+  <button onclick="starta()">Starta rundan</button>
+</div>
 
-  <script>
-    function testaRost() {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+<div id="spel" style="display:none">
+  <h2 id="hal">Hål 1 av 18</h2>
+  <h2 id="spelare"></h2>
 
-      if (!SpeechRecognition) {
-        document.getElementById("resultat").textContent =
-          "Röstigenkänning stöds inte i denna webbläsare.";
-        return;
-      }
+  <button onclick="startaMikrofon()">🎤 Starta mikrofon</button>
 
-      const recognition = new SpeechRecognition();
-      recognition.lang = "sv-SE";
+  <p id="status">Tryck på mikrofonen och säg antal slag.</p>
+  <div id="slag">–</div>
 
-      recognition.onresult = function(event) {
-        document.getElementById("resultat").textContent =
-          "Jag hörde: " + event.results[0][0].transcript;
-      };
+  <button onclick="ratta()">Rätta senaste slag</button>
+  <p id="framsteg"></p>
+</div>
 
-      recognition.onerror = function(event) {
-        document.getElementById("resultat").textContent =
-          "Fel: " + event.error;
-      };
+<div id="slut" style="display:none">
+  <h2>Rundan är klar!</h2>
+  <div id="resultat"></div>
+</div>
 
-      recognition.start();
+<script>
+let spelare = [];
+let resultat = {};
+let hal = 1;
+let tur = 0;
+let historik = [];
+
+function starta() {
+  spelare = document.getElementById("namn").value
+    .split(",")
+    .map(n => n.trim())
+    .filter(n => n);
+
+  if (spelare.length === 0) {
+    alert("Ange minst en spelare.");
+    return;
+  }
+
+  spelare.forEach(n => resultat[n] = []);
+
+  document.getElementById("start").style.display = "none";
+  document.getElementById("spel").style.display = "block";
+
+  visa();
+}
+
+function visa() {
+  document.getElementById("hal").textContent =
+    "Hål " + hal + " av 18";
+
+  document.getElementById("spelare").textContent =
+    spelare[tur];
+
+  document.getElementById("slag").textContent = "–";
+
+  document.getElementById("status").textContent =
+    "Säg antal slag.";
+
+  document.getElementById("framsteg").textContent =
+    "Registrerade slag: " + historik.length +
+    " av " + (spelare.length * 18);
+}
+
+function startaMikrofon() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    document.getElementById("status").textContent =
+      "Röstigenkänning stöds inte i denna webbläsare.";
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "sv-SE";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = function(event) {
+    const text = event.results[0][0].transcript
+      .toLowerCase().trim();
+
+    const ord = {
+      "ett": 1, "en": 1, "två": 2,
+      "tre": 3, "fyra": 4, "fem": 5,
+      "sex": 6, "sju": 7, "åtta": 8,
+      "nio": 9, "tio": 10,
+      "elva": 11, "tolv": 12,
+      "tretton": 13, "fjorton": 14,
+      "femton": 15
+    };
+
+    let slag = Number(text);
+
+    if (!Number.isInteger(slag) || slag < 1) {
+      slag = ord[text];
     }
-  </script>
+
+    if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
+      document.getElementById("status").textContent =
+        "Jag hörde: " + text + ". Försök igen.";
+      return;
+    }
+
+    registrera(slag);
+  };
+
+  recognition.onerror = function(event) {
+    document.getElementById("status").textContent =
+      "Mikrofonfel: " + event.error;
+  };
+
+  recognition.start();
+}
+
+function registrera(slag) {
+  const namn = spelare[tur];
+
+  resultat[namn][hal - 1] = slag;
+
+  historik.push({
+    namn: namn,
+    hal: hal,
+    slag: slag
+  });
+
+  document.getElementById("slag").textContent = slag;
+
+  tur++;
+
+  if (tur >= spelare.length) {
+    tur = 0;
+    hal++;
+  }
+
+  if (hal > 18) {
+    avsluta();
+  } else {
+    visa();
+  }
+}
+
+function ratta() {
+  if (historik.length === 0) return;
+
+  const senaste = historik.pop();
+
+  hal = senaste.hal;
+  tur = spelare.indexOf(senaste.namn);
+
+  resultat[senaste.namn][hal - 1] = undefined;
+
+  visa();
+
+  document.getElementById("status").textContent =
+    "Ange nytt antal slag för " + senaste.namn;
+}
+
+function avsluta() {
+  document.getElementById("spel").style.display = "none";
+  document.getElementById("slut").style.display = "block";
+
+  let html = "";
+
+  spelare.forEach(namn => {
+    const total = resultat[namn].reduce(
+      (summa, slag) => summa + (slag || 0), 0
+    );
+
+    html += "<h3>" + namn + ": " + total + " slag</h3>";
+  });
+
+  document.getElementById("resultat").innerHTML = html;
+}
+</script>
 
 </body>
 </html>
