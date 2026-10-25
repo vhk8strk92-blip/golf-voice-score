@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Golf Voice Score</title>
+</head>
+<body style="font-family:Arial; text-align:center; padding:30px;">
+
+  <h1>⛳ Golf Voice Score</h1>
+  <h2>Test av röststyrning</h2>
+
+  <button onclick="testaRost()" style="font-size:24px; padding:15px;">
+    🎤 Starta mikrofon
+  </button>
+
+  <p id="resultat" style="font-size:24px;">Väntar på röst...</p>
+
+  <script>
+    function testaRost() {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        document.getElementById("resultat").textContent =
+          "Röstigenkänning stöds inte i denna webbläsare.";
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "sv-SE";
+
+      recognition.onresult = function(event) {
+        document.getElementById("resultat").textContent =
+          "Jag hörde: " + event.results[0][0].transcript;
+      };
+
+      recognition.onerror = function(event) {
+        document.getElementById("resultat").textContent =
+          "Fel: " + event.error;
+      };
+
+      recognition.start();
+    }
+  </script>
+
+</body>
+</html>
