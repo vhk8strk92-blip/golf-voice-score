@@ -1,344 +1,72 @@
-<!DOCTYPE html>
-<html lang="sv">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golf Voice Score</title>
-
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Golf Voice Score v6</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  background: #f5f8f5;
-  padding: 15px;
-}
-h1 { color: #176b39; }
-button, input {
-  font-size: 19px;
-  padding: 12px;
-  margin: 6px;
-}
-button {
-  background: #176b39;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-#namn { width: 85%; max-width: 450px; }
-#spelare { color: #176b39; }
-#status { font-size: 18px; }
-#senaste {
-  font-size: 21px;
-  font-weight: bold;
-  color: #176b39;
-}
-.tabellruta {
-  width: 100%;
-  overflow-x: auto;
-}
-table {
-  border-collapse: collapse;
-  margin: 15px auto;
-  font-size: 17px;
-}
-th, td {
-  border: 1px solid #aaa;
-  padding: 10px;
-  min-width: 48px;
-}
-th { background: #d8eadc; }
-.aktiv { background: #fff2b8; }
-.total {
-  background: #d8eadc;
-  font-weight: bold;
-}
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#16332b;background:#f5f8f5}*{box-sizing:border-box}body{margin:0;padding:16px;max-width:900px;margin-inline:auto}h1{font-size:1.55rem;margin:10px 0}h2{font-size:1.2rem}button,input{font:inherit}button{border:0;border-radius:12px;background:#176c50;color:white;padding:12px 15px;cursor:pointer;margin:4px 3px 4px 0}button.secondary{background:#dce9e2;color:#16332b}button.warn{background:#a23d31}button:disabled{opacity:.5}input[type=text],input[type=number]{padding:11px;border:1px solid #a6bcb1;border-radius:10px;max-width:100%}.panel{background:white;border:1px solid #dce8df;border-radius:16px;padding:15px;margin:12px 0}.muted{color:#526c60}.hidden{display:none}.names{display:flex;flex-wrap:wrap;gap:8px}.names label{background:#eef5f0;padding:10px;border-radius:10px}.big{font-size:1.35rem;font-weight:700}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid #e0e8e2;padding:9px 7px;text-align:center;white-space:nowrap}th:first-child,td:first-child{position:sticky;left:0;background:white}tr.current{background:#e8f6e9}tr.current td:first-child{background:#e8f6e9}.score{background:none;color:#176c50;padding:5px 8px;border:1px solid #d5e3d9;border-radius:7px;min-width:32px;margin:0}.status{min-height:24px}.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#editor{border:1px solid #8ab7a1}small{display:block;color:#5b7066;margin-top:5px}
 </style>
 </head>
-
 <body>
-
-<h1>⛳ Golf Voice Score</h1>
-
-<div id="start">
-  <h2>Vilka spelar idag?</h2>
-  <p>Skriv spelarnas namn med kommatecken emellan.</p>
-  <input id="namn" placeholder="Anders, Peter, Colin">
-  <br>
-  <button onclick="starta()">Starta rundan</button>
-</div>
-
-<div id="spel" style="display:none">
-  <h2 id="hal"></h2>
-  <h2 id="spelare"></h2>
-
-  <button onclick="startaMikrofon()">🎤 Starta mikrofon</button>
-
-  <p id="status">Säg antal slag.</p>
-  <p id="senaste"></p>
-
-  <div class="tabellruta">
-    <table id="scorekort"></table>
-  </div>
-
-  <button onclick="ratta()">Rätta senaste slag</button>
-  <p id="framsteg"></p>
-</div>
-
-<div id="slut" style="display:none">
-  <h2>Rundan är klar!</h2>
-  <div class="tabellruta">
-    <table id="slutkort"></table>
-  </div>
-</div>
-
+<h1>⛳ Golf Voice Score <span class="muted">v6</span></h1>
+<section id="setup" class="panel">
+<h2>Who is playing today?</h2>
+<p class="muted">Select players in the order you want to enter scores.</p>
+<div id="known" class="names"></div>
+<div class="flex" style="margin-top:12px"><input id="newName" type="text" placeholder="New player name" autocomplete="off"><button id="addPlayer" class="secondary">Add player</button></div>
+<p id="chosen" class="muted"></p>
+<button id="start">Start round</button>
+</section>
+<section id="game" class="hidden">
+<div class="panel"><div id="prompt" class="big"></div><p id="last" class="muted"></p>
+<div class="flex"><button id="mic">🎤 Start listening</button><button id="undo" class="secondary">Undo last entry</button><button id="finish" class="secondary">Finish round</button></div>
+<div class="flex"><input id="manual" type="number" min="1" max="30" placeholder="Strokes" style="width:110px"><button id="enter" class="secondary">Enter strokes</button></div>
+<p id="status" class="status muted" aria-live="polite"></p><small>Speak one number at a time, for example “four”, “five”, “six”. Tap the microphone again if Safari stops listening.</small></div>
+<div class="panel"><h2>Scorecard</h2><p class="muted">Tap any score to edit it.</p><div id="scorecard" class="table-wrap"></div></div>
+<div class="panel"><button id="newRound" class="secondary">New round</button></div>
+</section>
+<section id="editor" class="panel hidden"><h2 id="editTitle">Edit score</h2><div class="flex"><input id="editValue" type="number" min="1" max="30" placeholder="Strokes"><button id="saveEdit">Save</button><button id="cancelEdit" class="secondary">Cancel</button></div><small>Editing does not change whose turn is next.</small></section>
 <script>
-let spelare = [];
-let poang = [];
-let hal = 0;
-let tur = 0;
-let historik = [];
-let recognition = null;
-let lyssnar = false;
-
-function starta() {
-  spelare = document.getElementById("namn").value
-    .split(",")
-    .map(n => n.trim())
-    .filter(n => n);
-
-  if (spelare.length === 0 || spelare.length > 8) {
-    alert("Ange mellan 1 och 8 spelare.");
-    return;
-  }
-
-  poang = spelare.map(() => Array(18).fill(null));
-  hal = 0;
-  tur = 0;
-  historik = [];
-
-  document.getElementById("start").style.display = "none";
-  document.getElementById("spel").style.display = "block";
-
-  visa();
+'use strict';
+const STORE='golf-voice-score-v6';
+const NAMES='golf-voice-score-player-names';
+const $=id=>document.getElementById(id);
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let knownNames=[],selected=[],state=null,recognition=null,listening=false,editTarget=null;
+function loadJSON(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch{setStatus('Unable to save on this device.')}}
+function persistNames(){try{localStorage.setItem(NAMES,JSON.stringify(knownNames))}catch{}}
+function setStatus(s){$('status').textContent=s}
+function renderNames(){
+ $('known').innerHTML='';
+ for(const name of knownNames){const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=selected.includes(name);cb.addEventListener('change',()=>{if(cb.checked){if(selected.length>=20){cb.checked=false;alert('Maximum 20 players.');return}selected.push(name)}else selected=selected.filter(n=>n!==name);renderNames()});label.append(cb,document.createTextNode(' '+name));$('known').append(label)}
+ $('chosen').textContent=selected.length?'Playing order: '+selected.join(', '):'Select or add at least one player.';
 }
-
-function skydda(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function byggScorekort() {
-  let html = "<tr><th>Hål</th>";
-
-  spelare.forEach(namn => {
-    html += "<th>" + skydda(namn) + "</th>";
-  });
-
-  html += "</tr>";
-
-  for (let h = 0; h < 18; h++) {
-    const klass = h === hal ? ' class="aktiv"' : "";
-    html += "<tr" + klass + "><td>" + (h + 1) + "</td>";
-
-    spelare.forEach((namn, i) => {
-      const slag = poang[i][h];
-      html += "<td>" +
-        (slag === null ? "–" : slag) +
-        "</td>";
-    });
-
-    html += "</tr>";
-  }
-
-  html += '<tr class="total"><td>Totalt</td>';
-
-  spelare.forEach((namn, i) => {
-    const total = poang[i].reduce(
-      (summa, slag) => summa + (slag || 0), 0
-    );
-
-    html += "<td>" + total + "</td>";
-  });
-
-  html += "</tr>";
-
-  return html;
-}
-
-function visa() {
-  document.getElementById("hal").textContent =
-    "Hål " + (hal + 1) + " av 18";
-
-  document.getElementById("spelare").textContent =
-    "Nuvarande spelare: " + spelare[tur];
-
-  document.getElementById("scorekort").innerHTML =
-    byggScorekort();
-
-  document.getElementById("framsteg").textContent =
-    "Registrerade slag: " + historik.length +
-    " av " + (spelare.length * 18);
-}
-
-function startaMikrofon() {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    document.getElementById("status").textContent =
-      "Röstigenkänning stöds inte i denna webbläsare.";
-    return;
-  }
-
-  if (lyssnar) {
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.lang = "sv-SE";
-  recognition.continuous = true;
-  recognition.interimResults = false;
-
-  const aktuell = recognition;
-  const startHal = hal;
-  let sistaResultat = -1;
-  let stoppa = false;
-
-  aktuell.onstart = function() {
-    lyssnar = true;
-    document.getElementById("status").textContent =
-      "Lyssnar... Säg slag för " + spelare[tur];
-  };
-
-  aktuell.onresult = function(event) {
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (!event.results[i].isFinal || i <= sistaResultat) {
-        continue;
-      }
-
-      sistaResultat = i;
-
-      const text = event.results[i][0].transcript
-        .toLowerCase()
-        .trim()
-        .replace(/[.,!?]/g, "");
-
-      const ord = {
-        "ett": 1, "en": 1, "två": 2,
-        "tre": 3, "fyra": 4, "fem": 5,
-        "sex": 6, "sju": 7, "åtta": 8,
-        "nio": 9, "tio": 10,
-        "elva": 11, "tolv": 12,
-        "tretton": 13, "fjorton": 14,
-        "femton": 15
-      };
-
-      let slag = Number(text);
-
-      if (!Number.isInteger(slag) || slag < 1) {
-        slag = ord[text];
-      }
-
-      if (!Number.isInteger(slag) || slag < 1 || slag > 30) {
-        document.getElementById("status").textContent =
-          "Jag hörde: " + text + ". Försök igen.";
-        continue;
-      }
-
-      registrera(slag);
-
-      if (hal !== startHal) {
-        stoppa = true;
-        aktuell.stop();
-        break;
-      }
-
-      document.getElementById("status").textContent =
-        "Registrerat! Säg slag för " + spelare[tur];
-    }
-  };
-
-  aktuell.onerror = function(event) {
-    if (event.error !== "aborted") {
-      document.getElementById("status").textContent =
-        "Mikrofonfel: " + event.error;
-    }
-  };
-
-  aktuell.onend = function() {
-    lyssnar = false;
-
-    if (!stoppa && hal === startHal) {
-      document.getElementById("status").textContent =
-        "Mikrofonen stannade. Tryck för att fortsätta.";
-    }
-  };
-
-  try {
-    aktuell.start();
-  } catch (e) {
-    lyssnar = false;
-    document.getElementById("status").textContent =
-      "Kunde inte starta mikrofonen.";
-  }
-}
-
-function registrera(slag) {
-  const namn = spelare[tur];
-
-  poang[tur][hal] = slag;
-  historik.push({ hal, tur, slag });
-
-  document.getElementById("senaste").textContent =
-    namn + ": " + slag + " slag";
-
-  document.getElementById("status").textContent =
-    "Registrerat! Tryck på mikrofonen för nästa spelare.";
-
-  tur++;
-
-  if (tur >= spelare.length) {
-    tur = 0;
-    hal++;
-  }
-
-  if (hal >= 18) {
-    avsluta();
-  } else {
-    visa();
-  }
-}
-
-function ratta() {
-  if (historik.length === 0) return;
-
-  const senaste = historik.pop();
-
-  hal = senaste.hal;
-  tur = senaste.tur;
-  poang[tur][hal] = null;
-
-  document.getElementById("senaste").textContent =
-    "Rättar " + spelare[tur] +
-    " på hål " + (hal + 1);
-
-  document.getElementById("status").textContent =
-    "Tryck på mikrofonen och ange rätt antal slag.";
-
-  visa();
-}
-
-function avsluta() {
-  document.getElementById("spel").style.display = "none";
-  document.getElementById("slut").style.display = "block";
-  document.getElementById("slutkort").innerHTML =
-    byggScorekort();
-}
+function addName(){const name=$('newName').value.trim().replace(/\s+/g,' ');if(!name)return;if(name.length>40){alert('Please use a shorter name.');return}const existing=knownNames.find(n=>n.toLowerCase()===name.toLowerCase());const actual=existing||name;if(!existing){knownNames.push(name);persistNames()}if(!selected.includes(actual))selected.push(actual);$('newName').value='';renderNames()}
+function validState(s){return s&&Array.isArray(s.players)&&s.players.length>0&&s.players.length<=20&&s.players.every(n=>typeof n==='string')&&Array.isArray(s.scores)&&s.scores.length===s.players.length&&s.scores.every(a=>Array.isArray(a)&&a.length===18&&a.every(v=>v===null||(Number.isInteger(v)&&v>=1&&v<=30)))&&Number.isInteger(s.hole)&&s.hole>=0&&s.hole<=18&&Number.isInteger(s.turn)&&s.turn>=0&&s.turn<s.players.length&&Array.isArray(s.history)}
+function showSetup(){$('setup').classList.remove('hidden');$('game').classList.add('hidden');$('editor').classList.add('hidden');renderNames()}
+function showGame(){$('setup').classList.add('hidden');$('game').classList.remove('hidden');render()}
+function begin(){if(!selected.length){alert('Choose at least one player.');return}if(state&&!state.finished&&!confirm('Replace the saved round with a new round?'))return;stopMic();state={players:[...selected],scores:selected.map(()=>Array(18).fill(null)),hole:0,turn:0,history:[],finished:false};persist();showGame()}
+function advance(){while(state.hole<18&&state.scores[state.turn][state.hole]!==null){state.turn++;if(state.turn>=state.players.length){state.turn=0;state.hole++}}if(state.hole===18)state.finished=true}
+function record(value){if(!state||state.finished)return;const n=Number(value);if(!Number.isInteger(n)||n<1||n>30){setStatus('Enter a whole number from 1 to 30.');return}const h=state.hole,t=state.turn;state.history.push({h,t,old:state.scores[t][h],value:n});state.scores[t][h]=n;advance();persist();$('manual').value='';setStatus(`${state.players[t]}: ${n} strokes on hole ${h+1}.`);render();if(state.finished)stopMic()}
+function undo(){if(!state||!state.history.length){setStatus('Nothing to undo.');return}stopMic();const item=state.history.pop();state.scores[item.t][item.h]=item.old;state.hole=item.h;state.turn=item.t;state.finished=false;persist();render();setStatus('Last entry undone.');}
+function render(){if(!state)return;$('prompt').textContent=state.finished?'Round complete':`Hole ${state.hole+1} of 18 — ${state.players[state.turn]}`;$('mic').disabled=state.finished;$('enter').disabled=state.finished;$('undo').disabled=!state.history.length;$('finish').textContent=state.finished?'Round finished':'Finish round';$('finish').disabled=state.finished;
+ let html='<table><thead><tr><th>Hole</th>'+state.players.map(p=>'<th>'+escapeHtml(p)+'</th>').join('')+'</tr></thead><tbody>';
+ for(let h=0;h<18;h++){html+=`<tr class="${!state.finished&&h===state.hole?'current':''}"><td>${h+1}</td>`;for(let t=0;t<state.players.length;t++){const v=state.scores[t][h];html+=`<td><button class="score" data-h="${h}" data-t="${t}" aria-label="Edit ${escapeHtml(state.players[t])} hole ${h+1}">${v===null?'–':v}</button></td>`}html+='</tr>'}
+ html+='<tr><th>Total</th>'+state.scores.map(a=>`<th>${a.reduce((sum,v)=>sum+(v||0),0)}</th>`).join('')+'</tr></tbody></table>';$('scorecard').innerHTML=html;
+ $('scorecard').querySelectorAll('button.score').forEach(b=>b.addEventListener('click',()=>openEdit(Number(b.dataset.h),Number(b.dataset.t))));}
+function openEdit(h,t){stopMic();editTarget={h,t};$('editTitle').textContent=`Edit: ${state.players[t]} — hole ${h+1}`;$('editValue').value=state.scores[t][h]??'';$('editor').classList.remove('hidden');$('editValue').focus();$('editor').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function closeEdit(){editTarget=null;$('editor').classList.add('hidden')}
+function saveEdit(){if(!editTarget)return;const n=Number($('editValue').value);if(!Number.isInteger(n)||n<1||n>30){alert('Enter a whole number from 1 to 30.');return}const {h,t}=editTarget;state.scores[t][h]=n;state.history=[];persist();closeEdit();render();setStatus(`Score updated: ${state.players[t]}, hole ${h+1}: ${n}.`)}
+function finish(){if(!state||state.finished)return;if(!confirm('Finish this round now? You can still edit scores afterward.'))return;stopMic();state.finished=true;persist();render();setStatus('Round saved on this device.')}
+function stopMic(){if(recognition){const r=recognition;recognition=null;try{r.stop()}catch{}}listening=false;$('mic').textContent='🎤 Start listening'}
+const wordNumbers={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20};
+function parseStroke(text){const s=text.toLowerCase().trim().replace(/[.,!?]/g,'');if(/^\d{1,2}$/.test(s))return Number(s);if(wordNumbers[s])return wordNumbers[s];const m=s.match(/^twenty[ -](one|two|three|four|five|six|seven|eight|nine)$/);if(m)return 20+wordNumbers[m[1]];if(s==='thirty')return 30;return null}
+function startMic(){if(listening){stopMic();setStatus('Listening stopped.');return}if(!state||state.finished)return;const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){setStatus('Speech recognition is unavailable in this browser. Use manual entry.');return}const r=new Speech();recognition=r;r.lang='en-US';r.continuous=true;r.interimResults=false;let processed=0;const initialHole=state.hole;let expectedTurn=state.turn;let lastText='',lastAt=0;
+ r.onresult=e=>{if(recognition!==r)return;for(let i=Math.max(e.resultIndex,processed);i<e.results.length;i++){if(!e.results[i].isFinal)continue;processed=i+1;const transcript=e.results[i][0].transcript.trim();const n=parseStroke(transcript);if(n===null||n<1||n>30){setStatus(`Heard “${transcript}”. Please say one number.`);continue}const now=Date.now();if(transcript.toLowerCase()===lastText&&now-lastAt<1200)continue;lastText=transcript.toLowerCase();lastAt=now;if(state.finished||state.hole!==initialHole){stopMic();break}if(state.turn!==expectedTurn)expectedTurn=state.turn;record(n);expectedTurn=state.turn;if(state.hole!==initialHole||state.finished){stopMic();break}}};
+ r.onerror=e=>{if(recognition===r)setStatus('Microphone: '+e.error+'. Tap to try again.')};r.onend=()=>{if(recognition===r){recognition=null;listening=false;$('mic').textContent='🎤 Continue listening';if(!state.finished)setStatus('Microphone paused. Tap Continue listening for the next score.')}};
+ try{r.start();listening=true;$('mic').textContent='■ Stop listening';setStatus('Listening — say the strokes for '+state.players[state.turn]+'.')}catch(e){recognition=null;listening=false;setStatus('Could not start microphone. Try again.')}}
+$('addPlayer').onclick=addName;$('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addName()});$('start').onclick=begin;$('mic').onclick=startMic;$('enter').onclick=()=>record($('manual').value);$('manual').addEventListener('keydown',e=>{if(e.key==='Enter')record($('manual').value)});$('undo').onclick=undo;$('finish').onclick=finish;$('saveEdit').onclick=saveEdit;$('cancelEdit').onclick=closeEdit;$('newRound').onclick=()=>{stopMic();if(!confirm('Start a new round? The current round will be replaced on this device.'))return;state=null;try{localStorage.removeItem(STORE)}catch{};selected=[];showSetup()};
+knownNames=loadJSON(NAMES,[]).filter(n=>typeof n==='string');state=loadJSON(STORE,null);if(!validState(state))state=null;if(state){selected=[...state.players];for(const name of state.players)if(!knownNames.includes(name))knownNames.push(name);persistNames();showGame();setStatus('Saved round restored on this device.')}else showSetup();
 </script>
-
-</body>
-</html>
+</body></html>
