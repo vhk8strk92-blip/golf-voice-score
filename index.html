@@ -1,72 +1,95 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Golf Voice Score v6</title>
-<style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#16332b;background:#f5f8f5}*{box-sizing:border-box}body{margin:0;padding:16px;max-width:900px;margin-inline:auto}h1{font-size:1.55rem;margin:10px 0}h2{font-size:1.2rem}button,input{font:inherit}button{border:0;border-radius:12px;background:#176c50;color:white;padding:12px 15px;cursor:pointer;margin:4px 3px 4px 0}button.secondary{background:#dce9e2;color:#16332b}button.warn{background:#a23d31}button:disabled{opacity:.5}input[type=text],input[type=number]{padding:11px;border:1px solid #a6bcb1;border-radius:10px;max-width:100%}.panel{background:white;border:1px solid #dce8df;border-radius:16px;padding:15px;margin:12px 0}.muted{color:#526c60}.hidden{display:none}.names{display:flex;flex-wrap:wrap;gap:8px}.names label{background:#eef5f0;padding:10px;border-radius:10px}.big{font-size:1.35rem;font-weight:700}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid #e0e8e2;padding:9px 7px;text-align:center;white-space:nowrap}th:first-child,td:first-child{position:sticky;left:0;background:white}tr.current{background:#e8f6e9}tr.current td:first-child{background:#e8f6e9}.score{background:none;color:#176c50;padding:5px 8px;border:1px solid #d5e3d9;border-radius:7px;min-width:32px;margin:0}.status{min-height:24px}.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#editor{border:1px solid #8ab7a1}small{display:block;color:#5b7066;margin-top:5px}
-</style>
-</head>
-<body>
-<h1>⛳ Golf Voice Score <span class="muted">v6</span></h1>
-<section id="setup" class="panel">
-<h2>Who is playing today?</h2>
-<p class="muted">Select players in the order you want to enter scores.</p>
-<div id="known" class="names"></div>
-<div class="flex" style="margin-top:12px"><input id="newName" type="text" placeholder="New player name" autocomplete="off"><button id="addPlayer" class="secondary">Add player</button></div>
-<p id="chosen" class="muted"></p>
-<button id="start">Start round</button>
-</section>
-<section id="game" class="hidden">
-<div class="panel"><div id="prompt" class="big"></div><p id="last" class="muted"></p>
-<div class="flex"><button id="mic">🎤 Start listening</button><button id="undo" class="secondary">Undo last entry</button><button id="finish" class="secondary">Finish round</button></div>
-<div class="flex"><input id="manual" type="number" min="1" max="30" placeholder="Strokes" style="width:110px"><button id="enter" class="secondary">Enter strokes</button></div>
-<p id="status" class="status muted" aria-live="polite"></p><small>Speak one number at a time, for example “four”, “five”, “six”. Tap the microphone again if Safari stops listening.</small></div>
-<div class="panel"><h2>Scorecard</h2><p class="muted">Tap any score to edit it.</p><div id="scorecard" class="table-wrap"></div></div>
-<div class="panel"><button id="newRound" class="secondary">New round</button></div>
-</section>
-<section id="editor" class="panel hidden"><h2 id="editTitle">Edit score</h2><div class="flex"><input id="editValue" type="number" min="1" max="30" placeholder="Strokes"><button id="saveEdit">Save</button><button id="cancelEdit" class="secondary">Cancel</button></div><small>Editing does not change whose turn is next.</small></section>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Golf Voice Score v7.4</title><style>
+:root{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#16332b;background:#f5f8f5}*{box-sizing:border-box}body{margin:0 auto;padding:16px;max-width:1000px}h1{font-size:1.55rem}h2{font-size:1.2rem;margin-top:0}button,input,select{font:inherit}button{border:0;border-radius:10px;background:#176c50;color:white;padding:11px 14px;cursor:pointer;margin:3px}button.secondary{background:#dce9e2;color:#16332b}button:disabled{opacity:.45}input,select{padding:9px;border:1px solid #a6bcb1;border-radius:9px;max-width:100%}.panel{background:white;border:1px solid #dce8df;border-radius:15px;padding:15px;margin:12px 0}.muted{color:#526c60}.hidden{display:none}.names,.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.names label{background:#eef5f0;padding:9px;border-radius:9px}.big{font-size:1.3rem;font-weight:700}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid #e0e8e2;padding:8px;text-align:center;white-space:nowrap}th:first-child,td:first-child{position:sticky;left:0;background:white}tr.current{background:#e8f6e9}.score{background:white;color:#176c50;padding:5px 8px;border:1px solid #d5e3d9;border-radius:7px;min-width:32px}.group{border:1px solid #dce8df;border-radius:10px;padding:10px;margin:8px 0}small{color:#526c60}#status{min-height:1.5em}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e3ad47}
+</style></head><body><h1>⛳ Golf Voice Score <span class="muted">v7.4</span></h1><p class="muted">Voice scoring for up to three groups • 18 holes • saved rounds</p>
+<section id="setup" class="panel"><h2>Who is playing today?</h2><p class="muted">Select all today's players. Players remain in the register even if they rarely play.</p><div id="known" class="names"></div><div class="flex" style="margin-top:12px"><input id="newName" type="text" placeholder="New player name" maxlength="40"><button id="addPlayer" class="secondary">Add player</button></div><p id="chosen" class="muted"></p><div class="flex"><label>Number of groups <select id="groupCount"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label></div><div id="assignments"></div><label>Your group <select id="ownGroup"></select></label><div><button id="start">Start round</button></div></section>
+<section id="game" class="hidden"><div class="panel"><div id="prompt" class="big"></div><p id="last" class="muted"></p><div class="flex"><button id="mic">🎤 Start listening</button><button id="undo" class="secondary">Undo last entry</button><button id="finish" class="secondary">Finish this group</button></div><div class="flex"><input id="manual" type="number" min="1" max="30" placeholder="Strokes" style="width:110px"><button id="enter" class="secondary">Enter strokes</button></div><p id="status" class="muted" aria-live="polite"></p><small>Speak one number at a time: “four”, “five”, “six”. Tap Start listening at each hole. If Safari pauses, tap again to continue.</small></div><div class="panel"><h2>Group scores</h2><div id="groupButtons" class="flex"></div><p class="muted">Tap any score to correct it. Select another group after finishing your own group.</p><div id="scorecard" class="table-wrap"></div></div><div class="panel flex"><button id="saveRound">Save complete round</button><button id="exportRound" class="secondary">Export CSV</button><button id="newRound" class="secondary">New round</button></div></section>
+<section id="editor" class="panel hidden"><h2 id="editTitle">Edit score</h2><input id="editValue" type="number" min="1" max="30" placeholder="Strokes"><button id="saveEdit">Save</button><button id="cancelEdit" class="secondary">Cancel</button></section>
+<section class="panel"><h2>Saved scorecards</h2><p class="muted">Saved in this browser on this device. Export CSV for backup and Google Sheets import.</p><div id="archive"></div><button id="exportAll" class="secondary">Export all rounds CSV</button></section>
 <script>
 'use strict';
-const STORE='golf-voice-score-v6';
-const NAMES='golf-voice-score-player-names';
-const $=id=>document.getElementById(id);
-const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let knownNames=[],selected=[],state=null,recognition=null,listening=false,editTarget=null;
-function loadJSON(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
-function persist(){try{localStorage.setItem(STORE,JSON.stringify(state))}catch{setStatus('Unable to save on this device.')}}
-function persistNames(){try{localStorage.setItem(NAMES,JSON.stringify(knownNames))}catch{}}
-function setStatus(s){$('status').textContent=s}
-function renderNames(){
- $('known').innerHTML='';
- for(const name of knownNames){const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=selected.includes(name);cb.addEventListener('change',()=>{if(cb.checked){if(selected.length>=20){cb.checked=false;alert('Maximum 20 players.');return}selected.push(name)}else selected=selected.filter(n=>n!==name);renderNames()});label.append(cb,document.createTextNode(' '+name));$('known').append(label)}
- $('chosen').textContent=selected.length?'Playing order: '+selected.join(', '):'Select or add at least one player.';
-}
-function addName(){const name=$('newName').value.trim().replace(/\s+/g,' ');if(!name)return;if(name.length>40){alert('Please use a shorter name.');return}const existing=knownNames.find(n=>n.toLowerCase()===name.toLowerCase());const actual=existing||name;if(!existing){knownNames.push(name);persistNames()}if(!selected.includes(actual))selected.push(actual);$('newName').value='';renderNames()}
-function validState(s){return s&&Array.isArray(s.players)&&s.players.length>0&&s.players.length<=20&&s.players.every(n=>typeof n==='string')&&Array.isArray(s.scores)&&s.scores.length===s.players.length&&s.scores.every(a=>Array.isArray(a)&&a.length===18&&a.every(v=>v===null||(Number.isInteger(v)&&v>=1&&v<=30)))&&Number.isInteger(s.hole)&&s.hole>=0&&s.hole<=18&&Number.isInteger(s.turn)&&s.turn>=0&&s.turn<s.players.length&&Array.isArray(s.history)}
-function showSetup(){$('setup').classList.remove('hidden');$('game').classList.add('hidden');$('editor').classList.add('hidden');renderNames()}
+const KEY='golf-voice-score-v7-current',ARCHIVE='golf-voice-score-v7-archive',NAMES='golf-voice-score-player-names';const $=id=>document.getElementById(id);const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}};const write=(key,v)=>{try{localStorage.setItem(key,JSON.stringify(v));return true}catch{alert('Storage failed. Export your results as CSV.');return false}};
+let names=read(NAMES,[]),selected=[],round=read(KEY,null),archive=read(ARCHIVE,[]),active=0,recognition=null,editing=null;
+if(!Array.isArray(names))names=[];names=[...new Set(names.filter(x=>typeof x==='string'))];if(!Array.isArray(archive))archive=[];
+function valid(r){return r&&typeof r.id==='string'&&Array.isArray(r.groups)&&r.groups.length>=1&&r.groups.length<=3&&r.groups.every(g=>Array.isArray(g.players)&&g.players.length&&Array.isArray(g.scores)&&g.scores.length===g.players.length&&g.scores.every(a=>Array.isArray(a)&&a.length===18&&a.every(v=>v===null||(Number.isInteger(v)&&v>=1&&v<=30))))}
+if(!valid(round))round=null;
+function setStatus(t){$('status').textContent=t}
+function renderNames(){const box=$('known');box.innerHTML='';for(const n of names){const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.checked=selected.includes(n);cb.onchange=()=>{if(cb.checked){if(selected.length>=20){cb.checked=false;alert('Maximum 20 players');return}selected.push(n)}else selected=selected.filter(x=>x!==n);renderNames()};label.append(cb,document.createTextNode(' '+n));box.append(label)}$('chosen').textContent=selected.length?'Today: '+selected.join(', '):'Choose at least one player';renderAssignments()}
+function addName(){const n=$('newName').value.trim().replace(/\s+/g,' ');if(!n)return;const actual=names.find(x=>x.toLowerCase()===n.toLowerCase())||n;if(!names.includes(actual)){names.push(actual);write(NAMES,names)}if(!selected.includes(actual))selected.push(actual);$('newName').value='';renderNames()}
+function renderAssignments(){const count=Number($('groupCount').value);const old={};document.querySelectorAll('select[data-player]').forEach(x=>old[x.dataset.player]=Number(x.value));$('assignments').innerHTML='';for(const n of selected){const row=document.createElement('div');row.className='flex';row.style.margin='6px 0';const label=document.createElement('label');label.textContent=n+' — Group ';const s=document.createElement('select');s.dataset.player=n;for(let i=0;i<count;i++){const o=document.createElement('option');o.value=i;o.textContent=i+1;s.append(o)}s.value=old[n]!==undefined&&old[n]<count?old[n]:selected.indexOf(n)%count;label.append(s);row.append(label);$('assignments').append(row)}$('ownGroup').innerHTML='';for(let i=0;i<count;i++)$('ownGroup').add(new Option('Group '+(i+1),String(i)))}
+function persist(){write(KEY,round)}function syncArchive(){if(!round)return;const i=archive.findIndex(x=>x.id===round.id);if(i>=0){archive[i]=structuredCloneSafe(round);write(ARCHIVE,archive)}renderArchive()}
+function structuredCloneSafe(v){return JSON.parse(JSON.stringify(v))}
+function start(){if(!selected.length)return alert('Select players first');const count=Number($('groupCount').value),groups=Array.from({length:count},()=>({players:[],scores:[],hole:0,turn:0,finished:false,history:[]}));document.querySelectorAll('select[data-player]').forEach(s=>{const g=groups[Number(s.value)];g.players.push(s.dataset.player);g.scores.push(Array(18).fill(null))});if(groups.some(g=>!g.players.length))return alert('Every group must contain at least one player');if(round&&!confirm('Start a new round? The current round will remain available only if you saved it to Saved scorecards.'))return;stopMic();round={id:Date.now()+'-'+Math.random().toString(36).slice(2),date:new Date().toISOString(),groups,complete:false};active=Number($('ownGroup').value);persist();showGame()}
+function group(){return round.groups[active]}
+function advance(g){while(g.hole<18&&g.scores[g.turn][g.hole]!==null){g.turn++;if(g.turn>=g.players.length){g.turn=0;g.hole++}}if(g.hole===18)g.finished=true}
+function record(value){if(!round||round.complete||group().finished)return;const n=Number(value);if(!Number.isInteger(n)||n<1||n>30)return setStatus('Enter a whole number from 1 to 30');const g=group(),h=g.hole,t=g.turn;g.history.push({h,t,old:g.scores[t][h]});g.scores[t][h]=n;advance(g);persist();syncArchive();$('manual').value='';render();setStatus(`${g.players[t]}: ${n} strokes on hole ${h+1}.`);if(g.finished)stopMic()}
+function undo(){const g=group();if(!g.history.length)return setStatus('Nothing to undo');stopMic();const e=g.history.pop();g.scores[e.t][e.h]=e.old;g.hole=e.h;g.turn=e.t;g.finished=false;round.complete=false;persist();syncArchive();render();setStatus('Last entry undone')}
 function showGame(){$('setup').classList.add('hidden');$('game').classList.remove('hidden');render()}
-function begin(){if(!selected.length){alert('Choose at least one player.');return}if(state&&!state.finished&&!confirm('Replace the saved round with a new round?'))return;stopMic();state={players:[...selected],scores:selected.map(()=>Array(18).fill(null)),hole:0,turn:0,history:[],finished:false};persist();showGame()}
-function advance(){while(state.hole<18&&state.scores[state.turn][state.hole]!==null){state.turn++;if(state.turn>=state.players.length){state.turn=0;state.hole++}}if(state.hole===18)state.finished=true}
-function record(value){if(!state||state.finished)return;const n=Number(value);if(!Number.isInteger(n)||n<1||n>30){setStatus('Enter a whole number from 1 to 30.');return}const h=state.hole,t=state.turn;state.history.push({h,t,old:state.scores[t][h],value:n});state.scores[t][h]=n;advance();persist();$('manual').value='';setStatus(`${state.players[t]}: ${n} strokes on hole ${h+1}.`);render();if(state.finished)stopMic()}
-function undo(){if(!state||!state.history.length){setStatus('Nothing to undo.');return}stopMic();const item=state.history.pop();state.scores[item.t][item.h]=item.old;state.hole=item.h;state.turn=item.t;state.finished=false;persist();render();setStatus('Last entry undone.');}
-function render(){if(!state)return;$('prompt').textContent=state.finished?'Round complete':`Hole ${state.hole+1} of 18 — ${state.players[state.turn]}`;$('mic').disabled=state.finished;$('enter').disabled=state.finished;$('undo').disabled=!state.history.length;$('finish').textContent=state.finished?'Round finished':'Finish round';$('finish').disabled=state.finished;
- let html='<table><thead><tr><th>Hole</th>'+state.players.map(p=>'<th>'+escapeHtml(p)+'</th>').join('')+'</tr></thead><tbody>';
- for(let h=0;h<18;h++){html+=`<tr class="${!state.finished&&h===state.hole?'current':''}"><td>${h+1}</td>`;for(let t=0;t<state.players.length;t++){const v=state.scores[t][h];html+=`<td><button class="score" data-h="${h}" data-t="${t}" aria-label="Edit ${escapeHtml(state.players[t])} hole ${h+1}">${v===null?'–':v}</button></td>`}html+='</tr>'}
- html+='<tr><th>Total</th>'+state.scores.map(a=>`<th>${a.reduce((sum,v)=>sum+(v||0),0)}</th>`).join('')+'</tr></tbody></table>';$('scorecard').innerHTML=html;
- $('scorecard').querySelectorAll('button.score').forEach(b=>b.addEventListener('click',()=>openEdit(Number(b.dataset.h),Number(b.dataset.t))));}
-function openEdit(h,t){stopMic();editTarget={h,t};$('editTitle').textContent=`Edit: ${state.players[t]} — hole ${h+1}`;$('editValue').value=state.scores[t][h]??'';$('editor').classList.remove('hidden');$('editValue').focus();$('editor').scrollIntoView({behavior:'smooth',block:'nearest'})}
-function closeEdit(){editTarget=null;$('editor').classList.add('hidden')}
-function saveEdit(){if(!editTarget)return;const n=Number($('editValue').value);if(!Number.isInteger(n)||n<1||n>30){alert('Enter a whole number from 1 to 30.');return}const {h,t}=editTarget;state.scores[t][h]=n;state.history=[];persist();closeEdit();render();setStatus(`Score updated: ${state.players[t]}, hole ${h+1}: ${n}.`)}
-function finish(){if(!state||state.finished)return;if(!confirm('Finish this round now? You can still edit scores afterward.'))return;stopMic();state.finished=true;persist();render();setStatus('Round saved on this device.')}
-function stopMic(){if(recognition){const r=recognition;recognition=null;try{r.stop()}catch{}}listening=false;$('mic').textContent='🎤 Start listening'}
-const wordNumbers={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20};
-function parseStroke(text){const s=text.toLowerCase().trim().replace(/[.,!?]/g,'');if(/^\d{1,2}$/.test(s))return Number(s);if(wordNumbers[s])return wordNumbers[s];const m=s.match(/^twenty[ -](one|two|three|four|five|six|seven|eight|nine)$/);if(m)return 20+wordNumbers[m[1]];if(s==='thirty')return 30;return null}
-function startMic(){if(listening){stopMic();setStatus('Listening stopped.');return}if(!state||state.finished)return;const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){setStatus('Speech recognition is unavailable in this browser. Use manual entry.');return}const r=new Speech();recognition=r;r.lang='en-US';r.continuous=true;r.interimResults=false;let processed=0;const initialHole=state.hole;let expectedTurn=state.turn;let lastText='',lastAt=0;
- r.onresult=e=>{if(recognition!==r)return;for(let i=Math.max(e.resultIndex,processed);i<e.results.length;i++){if(!e.results[i].isFinal)continue;processed=i+1;const transcript=e.results[i][0].transcript.trim();const n=parseStroke(transcript);if(n===null||n<1||n>30){setStatus(`Heard “${transcript}”. Please say one number.`);continue}const now=Date.now();if(transcript.toLowerCase()===lastText&&now-lastAt<1200)continue;lastText=transcript.toLowerCase();lastAt=now;if(state.finished||state.hole!==initialHole){stopMic();break}if(state.turn!==expectedTurn)expectedTurn=state.turn;record(n);expectedTurn=state.turn;if(state.hole!==initialHole||state.finished){stopMic();break}}};
- r.onerror=e=>{if(recognition===r)setStatus('Microphone: '+e.error+'. Tap to try again.')};r.onend=()=>{if(recognition===r){recognition=null;listening=false;$('mic').textContent='🎤 Continue listening';if(!state.finished)setStatus('Microphone paused. Tap Continue listening for the next score.')}};
- try{r.start();listening=true;$('mic').textContent='■ Stop listening';setStatus('Listening — say the strokes for '+state.players[state.turn]+'.')}catch(e){recognition=null;listening=false;setStatus('Could not start microphone. Try again.')}}
-$('addPlayer').onclick=addName;$('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addName()});$('start').onclick=begin;$('mic').onclick=startMic;$('enter').onclick=()=>record($('manual').value);$('manual').addEventListener('keydown',e=>{if(e.key==='Enter')record($('manual').value)});$('undo').onclick=undo;$('finish').onclick=finish;$('saveEdit').onclick=saveEdit;$('cancelEdit').onclick=closeEdit;$('newRound').onclick=()=>{stopMic();if(!confirm('Start a new round? The current round will be replaced on this device.'))return;state=null;try{localStorage.removeItem(STORE)}catch{};selected=[];showSetup()};
-knownNames=loadJSON(NAMES,[]).filter(n=>typeof n==='string');state=loadJSON(STORE,null);if(!validState(state))state=null;if(state){selected=[...state.players];for(const name of state.players)if(!knownNames.includes(name))knownNames.push(name);persistNames();showGame();setStatus('Saved round restored on this device.')}else showSetup();
-</script>
-</body></html>
+function render(){if(!round)return;const g=group();$('prompt').textContent=`Group ${active+1} — `+(round.complete?'Round saved':g.finished?'Group finished':`Hole ${g.hole+1} of 18 — ${g.players[g.turn]}`);$('mic').disabled=round.complete||g.finished||!!(micSession&&micSession.stopping);$('enter').disabled=round.complete||g.finished;$('undo').disabled=round.complete||!g.history.length;$('finish').disabled=round.complete||g.finished;$('saveRound').disabled=round.complete;$('groupButtons').innerHTML='';round.groups.forEach((x,i)=>{const b=document.createElement('button');b.className=i===active?'':'secondary';b.textContent=`Group ${i+1}${x.finished?' ✓':''}`;b.onclick=()=>{stopMic();active=i;render();setStatus('Selected group '+(i+1))};$('groupButtons').append(b)});let html='<table><thead><tr><th>Hole</th>'+g.players.map(p=>'<th>'+esc(p)+'</th>').join('')+'</tr></thead><tbody>';for(let h=0;h<18;h++){html+=`<tr class="${!g.finished&&h===g.hole?'current':''}"><td>${h+1}</td>`;for(let t=0;t<g.players.length;t++){const v=g.scores[t][h];html+=`<td><button class="score" data-h="${h}" data-t="${t}" aria-label="Edit ${esc(g.players[t])} hole ${h+1}">${v===null?'–':v}</button></td>`}html+='</tr>'}html+='<tr><th>Total</th>'+g.scores.map(a=>'<th>'+a.reduce((s,v)=>s+(v||0),0)+'</th>').join('')+'</tr></tbody></table>';$('scorecard').innerHTML=html;$('scorecard').querySelectorAll('.score').forEach(b=>b.onclick=()=>openEdit(Number(b.dataset.h),Number(b.dataset.t)))}
+function openEdit(h,t){stopMic();editing={h,t,active};$('editTitle').textContent=`Edit ${group().players[t]} — hole ${h+1}`;$('editValue').value=group().scores[t][h]??'';$('editor').classList.remove('hidden');$('editValue').focus()}
+function saveEdit(){if(!editing)return;const n=Number($('editValue').value);if(!Number.isInteger(n)||n<1||n>30)return alert('Enter 1–30 strokes');const {h,t,active:a}=editing;const g=round.groups[a];g.scores[t][h]=n;g.history=[];if(round.complete){round.complete=false}if(g.finished&&g.scores.some(row=>row.some(v=>v===null)))g.finished=false;persist();syncArchive();closeEdit();render();setStatus('Score corrected and saved locally')}
+function closeEdit(){editing=null;$('editor').classList.add('hidden')}
+function finish(){const g=group();if(!confirm('Finish this group? You may still edit scores afterward.'))return;stopMic();g.finished=true;persist();syncArchive();render();setStatus('Group finished. Select the next group to enter its scores.')}
+function saveRound(){if(!round)return;if(round.groups.some(g=>g.scores.some(a=>a.some(v=>v===null))))return alert('Some holes are missing. Enter all 18 holes for every player before saving the complete round.');if(!confirm('Save all groups as a completed round?'))return;stopMic();round.complete=true;round.groups.forEach(g=>g.finished=true);const idx=archive.findIndex(r=>r.id===round.id);if(idx>=0)archive[idx]=structuredCloneSafe(round);else archive.push(structuredCloneSafe(round));if(!write(ARCHIVE,archive))return;persist();render();renderArchive();setStatus('Complete scorecard saved on this device. Export CSV for Google Sheets.')}
+function renderArchive(){const el=$('archive');el.innerHTML='';if(!archive.length){el.textContent='No saved rounds yet.';return}archive.slice().reverse().forEach(r=>{if(!valid(r))return;const row=document.createElement('div');row.className='group';const title=document.createElement('strong');title.textContent=new Date(r.date).toLocaleString()+' — '+r.groups.flatMap(g=>g.players).join(', ');row.append(title);const b=document.createElement('button');b.className='secondary';b.textContent='Open scorecard';b.onclick=()=>{if(round&&!round.complete&&round.id!==r.id&&!confirm('Open saved round? Unsaved current progress may be replaced.'))return;stopMic();round=structuredCloneSafe(r);active=0;persist();showGame();setStatus('Saved scorecard opened. Tap a score to edit.')};row.append(b);const csv=document.createElement('button');csv.className='secondary';csv.textContent='Export CSV';csv.onclick=()=>exportCSV([r]);row.append(csv);el.append(row)})}
+function csvCell(v){const s=String(v??'');return '"'+s.replace(/"/g,'""')+'"'}
+function exportCSV(rounds){const rows=[['Round ID','Date','Group','Player','Hole','Strokes']];for(const r of rounds)if(valid(r))r.groups.forEach((g,i)=>g.players.forEach((p,t)=>g.scores[t].forEach((v,h)=>rows.push([r.id,r.date,i+1,p,h+1,v??'']))));const csv='\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Golf_Voice_Score_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+// One user-started session per hole. Never restart Safari from a timer.
+let micSession=null;
+function stopMic(){
+  const s=micSession;
+  if(!s||s.stopping)return;
+  s.stopping=true;
+  $('mic').disabled=true;
+  $('mic').textContent='Microphone stopping…';
+  try{s.r.stop()}catch(e){releaseMic(s)}
+  // In case Safari omits onend, detach this session before allowing another.
+  if(micSession===s)s.timer=setTimeout(()=>releaseMic(s),1500);
+}
+function releaseMic(s){
+  if(micSession!==s)return;
+  clearTimeout(s.timer);
+  s.r.onresult=s.r.onerror=s.r.onend=null;
+  micSession=null;recognition=null;
+  $('mic').textContent='🎤 Start listening';
+  $('mic').disabled=!round||round.complete||group().finished;
+}
+const words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30};
+function parseStroke(text){const s=text.toLowerCase().trim().replace(/[.,!?]/g,'');if(/^\d{1,2}$/.test(s))return Number(s);if(words[s])return words[s];const m=s.match(/^twenty[ -](one|two|three|four|five|six|seven|eight|nine)$/);return m?20+words[m[1]]:null}
+function startMic(){
+  if(micSession){if(!micSession.stopping){stopMic();setStatus('Listening stopped.')}return}
+  if(!round||round.complete||group().finished||editing)return;
+  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!Speech){setStatus('Speech recognition not supported. Use manual entry.');return}
+  const r=new Speech(),s={r,roundId:round.id,active,hole:group().hole,stopping:false,seen:new Set(),timer:null};
+  micSession=s;recognition=r;
+  r.lang='en-US';r.continuous=true;r.interimResults=false;r.maxAlternatives=1;
+  const current=()=>micSession===s&&!s.stopping&&round&&round.id===s.roundId&&active===s.active&&group().hole===s.hole&&!group().finished&&!round.complete&&!editing;
+  r.onresult=e=>{
+    if(!current())return;
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(!current())break;
+      if(!e.results[i].isFinal||s.seen.has(i))continue;
+      s.seen.add(i);
+      const spoken=e.results[i][0].transcript.trim(),n=parseStroke(spoken);
+      if(n===null||n<1||n>30){setStatus(`Heard “${spoken}”. Say one number.`);continue}
+      record(n);
+      if(!current()){
+        stopMic();
+        setStatus(group().finished?'Group finished.':`Hole ${s.hole+1} saved. On hole ${group().hole+1}, tap Start listening.`);
+      }else setStatus(`Saved ${n}. Listening for ${group().players[group().turn]}.`);
+    }
+  };
+  r.onerror=e=>{
+    if(micSession!==s||s.stopping)return;
+    const message=e.error==='aborted'?'Listening was interrupted. Tap Start listening again.':e.error==='no-speech'?'No speech detected. Tap Start listening again.':`Microphone: ${e.error}. Tap Start listening to try again.`;
+    setStatus(message);stopMic();
+  };
+  r.onend=()=>{if(micSession!==s)return;const unexpected=!s.stopping;releaseMic(s);if(unexpected)setStatus('Listening paused. Tap Start listening to continue.');};
+  try{r.start();$('mic').textContent='■ Stop listening';setStatus('Listening — say strokes for '+group().players[group().turn])}
+  catch(e){releaseMic(s);setStatus('Could not start microphone. Tap Start listening again. '+(e.message||e.name||''))}
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMic()});
+$('addPlayer').onclick=addName;$('newName').onkeydown=e=>{if(e.key==='Enter')addName()};$('groupCount').onchange=renderAssignments;$('start').onclick=start;$('mic').onclick=startMic;$('undo').onclick=undo;$('finish').onclick=finish;$('enter').onclick=()=>{stopMic();record($('manual').value)};$('manual').onkeydown=e=>{if(e.key==='Enter'){stopMic();record($('manual').value)}};$('saveEdit').onclick=saveEdit;$('cancelEdit').onclick=closeEdit;$('saveRound').onclick=saveRound;$('exportRound').onclick=()=>{if(round)exportCSV([round])};$('exportAll').onclick=()=>{if(archive.length)exportCSV(archive);else alert('No saved rounds')};$('newRound').onclick=()=>{if(round&&!round.complete&&!confirm('Start new round? Current progress will be replaced unless saved to scorecards.'))return;stopMic();round=null;localStorage.removeItem(KEY);selected=[];$('setup').classList.remove('hidden');$('game').classList.add('hidden');renderNames()};
+renderArchive();if(round){active=0;showGame();setStatus('Current round restored from this device.')}else renderNames();
+</script></body></html>
